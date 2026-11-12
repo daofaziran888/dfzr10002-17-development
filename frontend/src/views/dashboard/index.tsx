@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { request } from '@/api/client'
+import PermissionPanel from './PermissionPanel'
 
 const ENDPOINT = '/api/dashboard'
 const columns = [
@@ -47,6 +48,14 @@ export default function DashboardView() {
   const [errorMessage, setErrorMessage] = useState('')
   const [filters, setFilters] = useState<Record<string, string>>({})
   const filterFields = useMemo(() => columns.slice(0, 3), [])
+  const [selectedPanel, setSelectedPanel] = useState<number | null>(null)
+
+  useEffect(() => {
+    const panel = rows.find((row) => String(row.面板编号) === 'DASH-0004')
+    if (panel && selectedPanel === null) {
+      setSelectedPanel(Number(panel.id))
+    }
+  }, [rows, selectedPanel])
 
   const reload = useCallback(async () => {
     setErrorMessage('')
@@ -90,6 +99,7 @@ export default function DashboardView() {
         <div>
           <h2>数据看板管理</h2>
           <p className="page-desc">维护数据看板的面板布局、图表组合与可见范围，实现分析结果集中展示。</p>
+          <p className="page-desc">按团队归属控制可见范围，跨部门越权筛选会被拒绝；授权调整与审批台账记录在下方权限编排里。</p>
         </div>
         <div className="page-actions">
           <button className="btn primary" type="button" onClick={() => setErrorMessage('看板面板登记入口尚未接入审批流')}>
@@ -134,7 +144,7 @@ export default function DashboardView() {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={String(row.id)}>
+            <tr key={String(row.id)} className={selectedPanel === Number(row.id) ? 'row-selected' : undefined}>
               {columns.map((column) => <td key={column}>{row[column] ?? '—'}</td>)}
               <td className="row-actions">
                 {actions.map((action) => (
@@ -142,6 +152,7 @@ export default function DashboardView() {
                     {action}
                   </button>
                 ))}
+                <button className="link" type="button" onClick={() => setSelectedPanel(Number(row.id))}>权限编排</button>
               </td>
             </tr>
           ))}
@@ -152,6 +163,8 @@ export default function DashboardView() {
           )}
         </tbody>
       </table>
+
+      {selectedPanel !== null && <PermissionPanel panelId={selectedPanel} />}
 
       <footer className="page-foot">
         <span>共 {total} 条数据看板记录</span>

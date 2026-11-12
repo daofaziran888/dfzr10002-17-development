@@ -66,9 +66,35 @@ npm run dev
 | 分析模型管理 | `model` | 分析模型 | 模型编号、模型名称、模型类型 |
 | 分析操作日志 | `log` | 操作日志 | 日志编号、操作类型、操作对象 |
 
+## 看板权限编排
+
+数据看板在同一面板内按团队控制可见范围，授权与访问判定集中在
+`backend/app/services/dashboard_access.py`，接口在
+`backend/app/routers/dashboard_access.py`：
+
+| 接口 | 用途 |
+| --- | --- |
+| `GET /api/dashboard/{id}/permissions` | 授权列表、生效范围、继承链、图表可见状态 |
+| `POST /api/dashboard/{id}/permissions` | 发布授权：团队、可见范围、允许维度/图表、继承来源 |
+| `POST /api/dashboard/{id}/permissions/{授权编号}/actions` | 审批通过、驳回、收紧范围、撤销授权 |
+| `POST /api/dashboard/{id}/access/evaluate` | 判定成员可见维度与参与刷新的图表，并写入访问历史 |
+| `GET /api/dashboard/{id}/charts/visibility` | 图表配置清单的可见状态 |
+| `GET/POST /api/dashboard/{id}/shares` | 只读分享链接；写操作按 403 拒绝 |
+| `GET /api/dashboard/{id}/access-history` | 历史访问（保留访问当时授权快照） |
+| `GET /api/dashboard/{id}/approvals` | 审批台账（团队、继承来源、审批人、变更前后维度） |
+
+冲突裁决按**最严优先**：同团队多条生效授权取交集；继承来源只能缩小范围；
+只读来源（本部门只读、跨部门只读、只读角色、分享链接）优先；分享链接范围 =
+创建快照 ∩ 当前授权，永不因新授权扩容；继承来源撤销后下游授权与图表可见状态
+同步失效，历史访问快照不回写。
+
+示例面板 `DASH-0004` 同时含财务图表 `CHAR-0004A` 与运营图表 `CHAR-0004B`：
+财务部成员只能看到销售额与地区维度、只刷新财务图表；运营部成员只能看到渠道
+维度、只刷新运营图表。
+
 ## 约定
 
-- 每个模块的前端页面在 `frontend/src/views/<模块>/index.vue`，后端接口在
+- 每个模块的前端页面在 `frontend/src/views/<模块>/index.tsx`，后端接口在
   `backend/app/routers/<模块>.py`，业务规则在 `backend/app/services/<模块>.py`。
 - 列表接口统一返回 `{ items, total, page, size }`，动作接口统一返回 `{ ok, message }`。
 - 状态流转只允许在 `app/services` 里改，路由层不做业务判断。

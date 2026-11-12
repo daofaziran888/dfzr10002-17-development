@@ -7,16 +7,22 @@ from __future__ import annotations
 from typing import Any
 
 from app.seed import SEED_ROWS
+from app.seed_access import SEED_AUX_ROWS
+
+# 辅助数据表：为看板权限编排提供团队、成员、授权、分享、访问历史与审批台账，
+# 不计入运营概览的业务模块数量。
+AUX_TABLES = frozenset(SEED_AUX_ROWS)
 
 
 class Store:
     def __init__(self) -> None:
         self._tables: dict[str, list[dict[str, Any]]] = {
-            name: [dict(row) for row in rows] for name, rows in SEED_ROWS.items()
+            name: [dict(row) for row in rows]
+            for name, rows in {**SEED_ROWS, **SEED_AUX_ROWS}.items()
         }
 
     def module_names(self) -> list[str]:
-        return sorted(self._tables)
+        return sorted(name for name in self._tables if name not in AUX_TABLES)
 
     def rows(self, module: str) -> list[dict[str, Any]]:
         return self._tables.setdefault(module, [])
